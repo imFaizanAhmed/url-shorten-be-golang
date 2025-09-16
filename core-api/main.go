@@ -2,18 +2,22 @@ package main
 
 import (
 	shorten_controllers "core-api/controllers"
+	redisClient "core-api/redis"
 
 	"github.com/beego/beego/v2/server/web"
 )
 
 func main() {
+	// Initialize Redis connection
+	redisClient.Init()
+
 	// Register controllers
 	web.Router("/", &MainController{})
 	web.Router("/shorten", &shorten_controllers.ShortenController{}, "post:Post")
 	web.Router("/:shortCode([A-Za-z0-9_-]+)", &shorten_controllers.ShortenController{}, "get:Get")
 
 	// Start the Beego server
-	web.Run()
+	web.Run("0.0.0.0:8080")
 }
 
 // MainController handles the root endpoint

@@ -3,29 +3,47 @@ package storage
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"log"
 	"strings"
-	"sync"
+	"time"
+
+	redisClient "core-api/redis"
 )
 
-// In-memory storage for URL mappings
-var (
-	urlStore = make(map[string]string) // shortCode -> longURL
-	mutex    = sync.RWMutex{}
+const (
+	// URL_PREFIX is the prefix for URL keys in Redis
+	URL_PREFIX = "url:"
+	// Default TTL for URLs (24 hours)
+	DEFAULT_TTL = 24 * time.Hour
 )
 
-// StoreURL stores a mapping between shortCode and longURL
+// StoreURL stores a mapping between shortCode and longURL in Redis
 func StoreURL(shortCode, longURL string) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	urlStore[shortCode] = longURL
+	key := URL_PREFIX + shortCode
+	ctx := redisClient.GetContext()
+
+	err := redisClient.Client.Set(ctx, key, longURL, DEFAULT_TTL).Err()
+	if err != nil {
+		log.Printf("Error storing URL in Redis: %v", err)
+	}
 }
 
-// GetURL retrieves the longURL for a given shortCode
+// GetURL retrieves the longURL for a given shortCode from Redis
 func GetURL(shortCode string) (string, bool) {
-	mutex.RLock()
-	defer mutex.RUnlock()
-	longURL, exists := urlStore[shortCode]
-	return longURL, exists
+	key := URL_PREFIX + shortCode
+	ctx := redisClient.GetContext()
+
+	longURL, err := redisClient.Client.Get(ctx, key).Result()
+	if err != nil {
+		if err.Error() == "redis: nil" {
+			// Key doesn't exist
+			return "", false
+		}
+		log.Printf("Error retrieving URL from Redis: %v", err)
+		return "", false
+	}
+
+	return longURL, true
 }
 
 // GenerateShortCode generates a random short code for the URL

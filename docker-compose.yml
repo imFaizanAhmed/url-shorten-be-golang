@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # Redis service
+  redis:
+    image: redis:7-alpine
+    container_name: url_shortener_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6378"
+    volumes:
+      # Persistent data storage
+      - redis_data:/data
+      # Optional: Custom Redis configuration
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6378", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+    networks:
+      - url_shortener_network
+
+  # Go application service
+  app:
+    build:
+      context: ./core-api
+      dockerfile: Dockerfile
+    container_name: url_shortener_app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Redis configuration
+      REDIS_HOST: redis
+      REDIS_PORT: 6378
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      
+      # Application configuration
+      BEE_RUNMODE: prod
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - url_shortener_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis Commander (Optional - for Redis management UI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: url_shortener_redis_ui
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6378
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin123
+    depends_on:
+      - redis
+    networks:
+      - url_shortener_network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  url_shortener_network:
+    driver: bridge
