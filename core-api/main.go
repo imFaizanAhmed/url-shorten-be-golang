@@ -5,11 +5,30 @@ import (
 	redisClient "core-api/redis"
 
 	"github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/context"
 )
+
+// corsFilter handles CORS (Cross-Origin Resource Sharing) headers
+func corsFilter(ctx *context.Context) {
+	// Set CORS headers
+	ctx.Output.Header("Access-Control-Allow-Origin", "*")
+	ctx.Output.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	ctx.Output.Header("Access-Control-Allow-Credentials", "true")
+	ctx.Output.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Requested-With")
+
+	// Handle preflight OPTIONS request
+	if ctx.Request.Method == "OPTIONS" {
+		ctx.Output.SetStatus(200)
+		return
+	}
+}
 
 func main() {
 	// Initialize Redis connection
 	redisClient.Init()
+
+	// Add CORS filter
+	web.InsertFilter("*", web.BeforeRouter, corsFilter)
 
 	// Register controllers
 	web.Router("/", &MainController{})
