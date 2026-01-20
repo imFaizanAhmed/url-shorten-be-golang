@@ -22,7 +22,7 @@ A high-performance URL shortening service built with Go, Beego framework, and Re
                                 ▼
                        ┌─────────────────┐
                        │   Redis UI      │
-                       │   (Optional)    │
+                       │                 │
                        │   Port: 8081    │
                        └─────────────────┘
 ```
@@ -67,7 +67,7 @@ appendfsync everysec  # Sync to disk every second
 
 #### **Memory Management**
 ```redis
-# Evict keys using Least Recently Used policy when memory is full
+# Evict keys using the Least Recently Used policy when memory is full
 maxmemory-policy allkeys-lru
 ```
 
