@@ -31,7 +31,7 @@ services:
     container_name: url_shortener_app
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "9090:8080"
     environment:
       # Redis configuration
       REDIS_HOST: redis
